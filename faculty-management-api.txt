@@ -1,0 +1,86 @@
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
+const app = express();
+const PORT = process.env.PORT||3000;
+const MONGO_URL = process.env.MONGO_URL||"mongodb://localhost:27017/facultyDB";
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({extended:true}));
+mongoose.connect(MONGO_URL)
+.then(()=>
+    console.log("connected to MongoDB"))
+.catch((err)=>
+    console.log("not connected to MongoDB",err));
+const FacultySchema = new mongoose.Schema({
+    name:{type:String,required:true},
+    department:{type:String,required:true},
+    email:{type:String,required:true},
+    phone:{type:String,required:true},
+    experience:{type:Number,default:0},
+});
+const Faculty = mongoose.model("Faculty",FacultySchema);
+//Routes 
+app.get("/",(req,res)=>{
+    res.send("Faculty Management Api is running");
+});
+//get all faculty 
+app.get("/api/faculty",async(req,res)=>{
+    try{
+    const faculty = await Faculty.find();
+    res.status(201).send({message:"Faculty fetched successfully",data:faculty});
+    
+}catch(error){
+    res.status(500).send({message:error.message});
+}
+});
+// add new faculty
+app.post("/api/faculty",async(req,res)=>{
+    try{
+    const faculty = new Faculty(req.body);
+    await faculty.save();
+    res.status(201).send({message:"faculty data added successfully",data:faculty});
+    }catch(error){
+        res.status(500).send({message:error.message});
+    }
+});
+//Get faculty by id
+app.get("/api/faculty/:id",async(req,res)=>{
+    try{
+    const faculty =  await Faculty.findById(req.params.id);
+    if(!faculty)return 
+    res.status(404).send({message:"faculty not found"});
+    res.status(201).send({message:"faculty data found",data:faculty});
+    }catch(error){
+        res.status(500).send({message:error.message});
+    }
+});
+//update faculty
+app.put("/api/faculty/:id",async(req,res) => {
+    try{
+    const faculty = await Faculty.findByIdAndUpdate(req.params.id,req.body,{
+        new:true});
+    if(!faculty)return
+    res.status(404).send({message:"faculty not found"});
+    res.status(201).send({message:"faculty updated successfully",data:faculty});
+}catch(error){
+    res.status(500).send({message:error.message});
+}  
+});
+//delete faculty
+app.get("/api/faculty/:id",async(req,res)=>{
+    try{
+    const faculty = await Faculty.findByIdAndDelete(req.params.id);
+    if(!faculty)return
+    res.status(404).send({message:"faculty not deleted"});
+    res.status(201).send({message:"faculty deleted successfully",data:faculty});
+    }catch(error){
+        res.status(500).send({message:error.message});
+    }
+});
+app.listen(PORT,()=>{
+    console.log(`server is running at http://localhost:${PORT}`);
+
+});
